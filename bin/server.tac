@@ -1,13 +1,7 @@
-import os
-import sys
-sys.path.append('.')
-
-from twisted.cred import portal
 from twisted.application import internet, service
 
-import auth
-import mailservice
-from domain import Alias, Actual, Maillist
+from txmailserver import mailservice
+from txmailserver.domain import Alias, Actual, Maillist
 
 domains = {
     'sample.org': [
@@ -48,29 +42,31 @@ domains = {
 mailboxDir = 'Maildir'
 configDir = 'etc'
 forwardDir = 'queue'
+smtpPort = 2525
+pop3Port = 2110
 
 # setup the application
 application = service.Application("smtp and pop server")
-sc = service.IServiceCollection(application)
+svc = service.IServiceCollection(application)
 
 # setup the mail service
-mailService = mailservice.MailService(mailboxDir, configDir, forwardDir, domains)
+mailService = mailservice.MailService(
+    mailboxDir, configDir, forwardDir, domains)
 
 # setup the queue checker
 queueTimer = mailService.relayQueueTimer
-queueTimer.setServiceParent(sc)
-
+queueTimer.setServiceParent(svc)
 
 # setup the SMTP server
 factory = mailService.getSMTPFactory()
-smtp = internet.TCPServer(25, factory)
-smtp.setServiceParent(sc)
+smtp = internet.TCPServer(smtpPort, factory)
+smtp.setServiceParent(svc)
 
 # setup the whitelist queue timer
 whitelistQueueTimer = factory.whitelistPurgeTimer
-whitelistQueueTimer.setServiceParent(sc)
+whitelistQueueTimer.setServiceParent(svc)
 
 # setup the POP3 server
 factory = mailService.getPOP3Factory()
-pop3 = internet.TCPServer(110, factory)
-pop3.setServiceParent(sc)
+pop3 = internet.TCPServer(pop3Port, factory)
+pop3.setServiceParent(svc)

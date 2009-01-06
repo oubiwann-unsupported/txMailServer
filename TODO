@@ -1,0 +1,4 @@
+* Clean up txmailserver/server/smtp.py.
+* Addres XXXs in txmailserver/mailservice.py.
+* Move DSpam code out of smtp server and into a util module or something.
+* Replace print statements with log calls.

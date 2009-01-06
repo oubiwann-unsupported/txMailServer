@@ -6,12 +6,12 @@ from twisted.mail import pop3, maildir
 from twisted.cred import portal, checkers, credentials, error as credError
 from twisted.internet import protocol, reactor, defer
 
-import pop3server
+from txmailserver import server
 
 class MailUserRealm(object):
     implements(portal.IRealm)
     avatarInterfaces = {
-        pop3.IMailbox: pop3server.UserInbox,
+        pop3.IMailbox: server.pop3.UserInbox,
         }
 
     def __init__(self, baseDir):

@@ -4,13 +4,9 @@ from email.Header import Header
 from zope.interface import implements
 
 from twisted.cred import portal
-from twisted.mail import mail
-from twisted.mail import relay
-from twisted.mail import relaymanager
+from twisted.mail import mail, relay, relaymanager
 
-import auth
-import smtpserver
-import pop3server
+from txmailserver import auth, server
 
 class MailService(mail.MailService):
 
@@ -32,11 +28,15 @@ class MailService(mail.MailService):
         self.setQueue(queue)
         self.domains.setDefaultDomain(self.queuer)
         self.relayManager = relaymanager.SmartHostSMTPRelayingManager(queue)
+        # XXX pass this as a parameter
         self.relayManager.fArgs += ('shell3.adytum.us',)
-        self.relayQueueTimer = relaymanager.RelayStateHelper(self.relayManager, 15)
+        # XXX pass the time value as a parameter
+        self.relayQueueTimer = relaymanager.RelayStateHelper(
+            self.relayManager, 15)
 
     def getSMTPFactory(self):
-        factory = smtpserver.SMTPFactory(self.baseDir, self.configDir, self.validDomains, self.queuer)
+        factory = server.smtp.SMTPFactory(
+            self.baseDir, self.configDir, self.validDomains, self.queuer)
         factory.configDir = self.configDir
         factory.portal = self.portal
         factory.portal.registerChecker(self.checker)
@@ -44,7 +44,7 @@ class MailService(mail.MailService):
         return factory
 
     def getPOP3Factory(self):
-        factory = pop3server.POP3Factory()
+        factory = server.pop3.POP3Factory()
         factory.portal = self.portal
         factory.portal.registerChecker(self.checker)
         return factory

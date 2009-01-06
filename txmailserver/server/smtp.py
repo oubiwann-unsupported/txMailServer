@@ -11,7 +11,7 @@ from twisted.internet import protocol, defer
 from twisted.internet.threads import deferToThread
 from twisted.application.internet import TimerService
 
-from domain import Alias, Actual, Maillist
+from txmailserver.domain import Alias, Actual, Maillist
 
 USE_DSPAM = True
 VALID_DSPAM_PREFIX = ['train-spam-', 'nospam-', 'spam-']
@@ -162,9 +162,6 @@ class LocalDelivery(object):
         localDomains = self.validDomains.keys()
         localUsersOrig = self.validDomains.get(origDomain)
         localUsersDest = self.validDomains.get(destDomain)
-        if re.match('.*yahoo\.co\.kr', destDomain) or re.match('.*yahoo\.co\.kr', origDomain):
-            print "Rejecting Korean spam..."
-            raise smtp.SMTPBadRcpt(user)
         print "in validateTo()..."
         print type(localUsersOrig)
         print localUsersOrig

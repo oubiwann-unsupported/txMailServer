@@ -3,6 +3,9 @@
 * Added initial admin directory and scripts.
 * Added code for mail server that dates to approximately July of 2006.
 * Added lib dir.
+* Moved library code into new lib dir.
+* Tweaked service.tac.
+* Added TODO.
 
 2006.07
 
