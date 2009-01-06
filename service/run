@@ -1,0 +1,9 @@
+#!/bin/sh
+
+BASE_DIR=/var/twisted.mail
+TWISTD=/usr/bin/twistd
+APP=bin/server.tac
+
+cd $BASE_DIR
+exec 2>&1
+exec $TWISTD -noy $APP

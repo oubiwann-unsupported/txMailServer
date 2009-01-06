@@ -1,0 +1,2 @@
+#!/bin/sh
+     exec setuidgid root multilog t s16777215 ./main
