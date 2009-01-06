@@ -1,0 +1,13 @@
+2009.01.06
+
+* Added initial admin directory and scripts.
+
+2006.07
+
+* Lots more changes and updates.
+
+2006.05
+
+* Started initial work on mail server code. Abe Fetig's examples in the Twisted
+book served as a starter and then I dug more deeply into the Twisted source
+code to get the rest.
