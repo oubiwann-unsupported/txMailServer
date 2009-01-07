@@ -1,6 +1,5 @@
 from subprocess import Popen, PIPE
 
-USE_DSPAM = True
 VALID_DSPAM_PREFIX = ['train-spam-', 'nospam-', 'spam-']
 
 def runDspam(user, data):

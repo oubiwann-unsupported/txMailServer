@@ -54,7 +54,8 @@ ms = mailservice.MailService(mailboxDir, configDir, forwardDir, domains)
 
 # setup the queue checker
 queueTimer = ms.relayQueueTimer
-queueTimer.setServiceParent(svc)
+if queueTimer:
+    queueTimer.setServiceParent(svc)
 
 # setup the SMTP server
 smtpFactory = ms.getSMTPFactory()

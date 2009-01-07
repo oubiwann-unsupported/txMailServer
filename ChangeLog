@@ -5,6 +5,8 @@
 * Updated admin defs.sh.
 * Added placeholder setup.py.
 * Moved Dspam code into util module.
+* Parameterized relay server info.
+* Started removing debug print statements.
 
 2009.01.06
 

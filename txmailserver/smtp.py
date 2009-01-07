@@ -11,20 +11,19 @@ from twisted.internet import protocol, defer
 from twisted.internet.threads import deferToThread
 from twisted.application.internet import TimerService
 
-from txmailserver.util import runDspam
+from txmailserver.util import runDspam, VALID_DSPAM_PREFIX
 from txmailserver.domain import Alias, Actual, Maillist
 
-def processMessageData(user, data):
-    print "processMessageData got user value of " + user
-    #if USE_DSPAM:
-    #if 'dorthuan' in user:
-    #    data = runDspam(user, data)
+def processMessageData(user, data, dspamEnabled):
+    if dspamEnabled:
+        data = runDspam(user, data)
     return data
 
 class MaildirMessageWriter(object):
     implements(smtp.IMessage)
 
-    def __init__(self, userDir):
+    def __init__(self, userDir, dspamEnabled):
+        self.dspamEnabled = dspamEnabled
         self.user = os.path.split(userDir)[-1]
         if not os.path.exists(userDir):
             os.mkdir(userDir)
@@ -39,7 +38,8 @@ class MaildirMessageWriter(object):
         # message is complete, store it
         print "Message data complete."
         self.lines.append('') # add a trailing newline
-        messageData = processMessageData(self.user, '\n'.join(self.lines))
+        data = '\n'.join(self.lines)
+        messageData = processMessageData(self.user, data, self.dspamEnabled)
         return self.mailbox.appendMessage(messageData)
 
     def connectionLost(self):
@@ -49,7 +49,8 @@ class MaildirMessageWriter(object):
 
 class MaildirListMessageWriter(MaildirMessageWriter):
 
-    def __init__(self, userDirList):
+    def __init__(self, userDirList, dspamEnabled):
+        self.dspamEnabled = dspamEnabled
         self.mailboxes = {}
         self.lines = {}
         self.dspamUsers = {}
@@ -71,19 +72,21 @@ class MaildirListMessageWriter(MaildirMessageWriter):
             self.lines[key].append('')
             print "Message data complete for %s." % key
             user = os.path.split(key)[-1]
-            messageData = processMessageData(user, '\n'.join(self.lines[key]))
+            data = '\n'.join(self.lines[key])
+            messageData = processMessageData(user, data, dspamEnabled)
             dl.append(self.mailboxes[key].appendMessage(messageData))
         return defer.DeferredList(dl)
 
 class LocalDelivery(object):
     implements(smtp.IMessageDelivery)
 
-    def __init__(self, baseDir, validDomains, domainQueuer):
+    def __init__(self, baseDir, validDomains, domainQueuer, dspamEnabled):
         if not os.path.isdir(baseDir):
             raise ValueError, "'%s' is not a directory" % baseDir
         self.baseDir = baseDir
         self.validDomains = validDomains
         self.domainQueuer = domainQueuer
+        self.dspamEnabled = dspamEnabled
         self.blacklist = self.whitelist = self.whitelistQueue = []
     
     def receivedHeader(self, helo, origin, recipients):
@@ -115,25 +118,15 @@ class LocalDelivery(object):
         localDomains = self.validDomains.keys()
         localUsersOrig = self.validDomains.get(origDomain)
         localUsersDest = self.validDomains.get(destDomain)
-        print "in validateTo()..."
-        print type(localUsersOrig)
-        print localUsersOrig
-        print type(localUsersDest)
-        print localUsersDest
-        #print "Dest: %s, %s" % (destDomain, destUser)
-        #print "Orig: %s, %s" % (origDomain, origUser)
-        #print "Local domains: %s" % str(localDomains)
         if not destDomain in localDomains:
             # get all local users
-            localUsers = [x.initial for x in localUsersOrig] + [x.dest for x in localUsersOrig]
-            #print "Variable 'localUsers':"
-            #print localUsers
+            localUsers = ([x.initial for x in localUsersOrig] +
+                          [x.dest for x in localUsersOrig])
             if (origDomain in localDomains and origUser in localUsers):
                 # startMessage returns 
                 # createNewMessage returns (headerFile, FileMessage)
                 d = self.domainQueuer
                 msg = lambda: d.startMessage(user)
-                #msg.__call__ = 
                 d.exists = lambda: msg
                 dest = "%s@%s" % (destUser, destDomain)
                 if dest not in localUsers:
@@ -142,9 +135,10 @@ class LocalDelivery(object):
             # Not a local user. raising SMTPBadRcpt...
             raise smtp.SMTPBadRcpt(user)
         for userType in localUsersDest:
-            # set 'nospam-' and 'spam-' prefixes to user names as valid recipients
+            # set 'nospam-' and 'spam-' prefixes to user names as valid
+            # recipients
             name = userType.initial
-            prefixes = [ x+name for x in VALID_DSPAM_PREFIX ]
+            prefixes = [x + name for x in VALID_DSPAM_PREFIX]
             if destUser in [name] + prefixes:
                 if destUser != name:
                     userType.dest = "%s@%s" % (destUser, destDomain)
@@ -155,13 +149,15 @@ class LocalDelivery(object):
                 elif isinstance(userType, Actual):
                     finalDest = str(user.dest)
                 elif isinstance(userType, Maillist):
-                    addressDirs = [ self._getAddressDir(x) for x in userType.dest ]
+                    addressDirs = [self._getAddressDir(x)
+                                   for x in userType.dest]
                     print "Looks like destination is a mail list..."
                     print "list addresses:"
                     print addressDirs
-                    return lambda: MaildirListMessageWriter(addressDirs)
+                    return lambda: MaildirListMessageWriter(
+                        addressDirs, self.dspamEnabled)
                 return lambda: MaildirMessageWriter(
-                    self._getAddressDir(finalDest))
+                    self._getAddressDir(finalDest), self.dspamEnabled)
         raise smtp.SMTPBadRcpt(user.dest)
 
     def _getAddressDir(self, address):
@@ -178,10 +174,13 @@ class SMTPFactory(protocol.ServerFactory):
         self.validDomains = validDomains
         self.domainQueuer = domainQueuer
         self.configDir = None
+        self.dspamEnabled = False
         self.whitelistPurgeTimer = TimerService(300, self.purgeWhitelistQueue)
 
     def getDelivery(self):
-        ld = LocalDelivery(self.baseDir, self.validDomains, self.domainQueuer)
+        ld = LocalDelivery(
+            self.baseDir, self.validDomains, self.domainQueuer,
+            self.dspamEnabled)
         ld.blacklist = self.blacklist
         ld.whitelist = self.whitelist
         ld.whitelistQueue = self.whitelistQueue

@@ -12,12 +12,17 @@ from txmailserver.pop3 import POP3Factory
 
 class MailService(mail.MailService):
 
-    def __init__(self, baseDir, configDir, forwardDir, validDomains):
+    def __init__(self, baseDir, configDir, forwardDir, validDomains,
+                 relayServers=[], relayCheckInterval=15):
         mail.MailService.__init__(self)
         self.baseDir = baseDir
         self.configDir = configDir
         self.forwardDir = forwardDir
         self.validDomains = validDomains
+        self.relayServers = relayServers
+        self.relayCheckInterval = relayCheckInterval
+        self.relayManager = None
+        self.relayQueueTimer = None
         self.realm = auth.MailUserRealm(self.baseDir)
         self.portal = portal.Portal(self.realm)
         passwords = auth.passwordFileToDict(auth.getPasswords(configDir))
@@ -29,12 +34,12 @@ class MailService(mail.MailService):
         self.queuer = relay.DomainQueuer(self)
         self.setQueue(queue)
         self.domains.setDefaultDomain(self.queuer)
-        self.relayManager = relaymanager.SmartHostSMTPRelayingManager(queue)
-        # XXX pass this as a parameter
-        self.relayManager.fArgs += ('shell3.adytum.us',)
-        # XXX pass the time value as a parameter
-        self.relayQueueTimer = relaymanager.RelayStateHelper(
-            self.relayManager, 15)
+        if relayServers:
+            self.relayManager = relaymanager.SmartHostSMTPRelayingManager(
+                queue)
+            self.relayManager.fArgs += tuple(self.relayServers)
+            self.relayQueueTimer = relaymanager.RelayStateHelper(
+                self.relayManager, 15)
 
     def getSMTPFactory(self):
         factory = SMTPFactory(
