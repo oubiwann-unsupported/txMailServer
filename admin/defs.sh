@@ -4,7 +4,7 @@ EGG_NAME=$NAME
 BZR='lp:~oubiwann/txmailserver/trunk'
 FLAG='skip_tests'
 MSG=commit-msg
-export PYTHONPATH=.:./test
+export PYTHONPATH=.:./test:$PYTHONPATH
 
 function getDiff {
     bzr diff $1 | \

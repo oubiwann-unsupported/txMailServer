@@ -6,7 +6,9 @@ from zope.interface import implements
 from twisted.cred import portal
 from twisted.mail import mail, relay, relaymanager
 
-from txmailserver import auth, server
+from txmailserver import auth
+from txmailserver.smtp import SMTPFactory
+from txmailserver.pop3 import POP3Factory
 
 class MailService(mail.MailService):
 
@@ -35,7 +37,7 @@ class MailService(mail.MailService):
             self.relayManager, 15)
 
     def getSMTPFactory(self):
-        factory = server.smtp.SMTPFactory(
+        factory = SMTPFactory(
             self.baseDir, self.configDir, self.validDomains, self.queuer)
         factory.configDir = self.configDir
         factory.portal = self.portal
@@ -44,7 +46,7 @@ class MailService(mail.MailService):
         return factory
 
     def getPOP3Factory(self):
-        factory = server.pop3.POP3Factory()
+        factory = POP3Factory()
         factory.portal = self.portal
         factory.portal.registerChecker(self.checker)
         return factory

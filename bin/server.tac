@@ -50,23 +50,22 @@ application = service.Application("smtp and pop server")
 svc = service.IServiceCollection(application)
 
 # setup the mail service
-mailService = mailservice.MailService(
-    mailboxDir, configDir, forwardDir, domains)
+ms = mailservice.MailService(mailboxDir, configDir, forwardDir, domains)
 
 # setup the queue checker
-queueTimer = mailService.relayQueueTimer
+queueTimer = ms.relayQueueTimer
 queueTimer.setServiceParent(svc)
 
 # setup the SMTP server
-factory = mailService.getSMTPFactory()
-smtp = internet.TCPServer(smtpPort, factory)
+smtpFactory = ms.getSMTPFactory()
+smtp = internet.TCPServer(smtpPort, smtpFactory)
 smtp.setServiceParent(svc)
 
 # setup the whitelist queue timer
-whitelistQueueTimer = factory.whitelistPurgeTimer
+whitelistQueueTimer = smtpFactory.whitelistPurgeTimer
 whitelistQueueTimer.setServiceParent(svc)
 
 # setup the POP3 server
-factory = mailService.getPOP3Factory()
-pop3 = internet.TCPServer(pop3Port, factory)
+pop3Factory = ms.getPOP3Factory()
+pop3 = internet.TCPServer(pop3Port, pop3Factory)
 pop3.setServiceParent(svc)
