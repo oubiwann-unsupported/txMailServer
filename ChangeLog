@@ -3,6 +3,7 @@
 * Removed the redundant server module.
 * Cleaned up service.tac.
 * Updated admin defs.sh.
+* Added placeholder setup.py.
 
 2009.01.06
 
