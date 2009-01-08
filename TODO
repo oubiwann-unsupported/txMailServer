@@ -1,1 +1,2 @@
 * Replace print statements with log calls.
+* Start finding bugs and add unit tests for every bug found.
