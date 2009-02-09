@@ -114,6 +114,7 @@ class LocalDelivery(object):
         return originAddress
     
     def validateTo(self, user):
+        log.msg("validateTo: %s" % user)
         destDomain = user.dest.domain.lower()
         destUser = user.dest.local.lower()
         origDomain = user.orig.domain.lower()
@@ -141,16 +142,18 @@ class LocalDelivery(object):
             # set 'nospam-' and 'spam-' prefixes to user names as valid
             # recipients
             name = userType.initial
-            prefixes = [x + name for x in VALID_DSPAM_PREFIX]
-            if destUser in [name] + prefixes:
-                if destUser != name:
-                    userType.dest = "%s@%s" % (destUser, destDomain)
-                    log.msg("Setting DSPAM username as:")
+            # with dspam
+            #if userType.validate(destUser, prefixes=VALID_DSPAM_PREFIX):
+            if userType.validate(destUser):
+                ## no DSPAM
+                ##if destUser != name:
+                ##    userType.dest = "%s@%s" % (destUser, destDomain)
+                ##    log.msg("Setting DSPAM username as:")
                 log.msg("Accepting mail for %s..." % user.dest)
                 if isinstance(userType, Alias):
                     finalDest = userType.dest
                 elif isinstance(userType, Actual):
-                    finalDest = str(user.dest)
+                    finalDest = user.dest
                 elif isinstance(userType, Maillist):
                     addressDirs = [self._getAddressDir(x)
                                    for x in userType.dest]
@@ -159,7 +162,10 @@ class LocalDelivery(object):
                     return lambda: MaildirListMessageWriter(
                         addressDirs, self.dspamEnabled)
                 elif isinstance(userType, CatchAll):
-                    finalDest = user.dest
+                    finalDest = userType.dest
+                else:
+                    log.err(userType)
+                
                 return lambda: MaildirMessageWriter(
                     self._getAddressDir(finalDest), self.dspamEnabled)
         raise smtp.SMTPBadRcpt(user.dest)

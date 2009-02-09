@@ -21,7 +21,8 @@ domains = {
         
         # catch all
         Actual('post'),
-        CatchAll('post-[0-9]+', 'post@sample.org'),
+        CatchAll('^post-[0-9]+$', 'post@sample.org'),
+        CatchAll('^post\+.*$', 'post@sample.org'),
 
         # lists
         Maillist('test-list', [
