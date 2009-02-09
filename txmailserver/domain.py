@@ -20,3 +20,9 @@ class Maillist(AddressType):
             raise Exception, "Maillist recipients must be of type list!"
         self.initial = mailListName.lower()
         self.dest = recipients
+
+class CatchAll(AddressType):
+    
+    def __init__(self, catchName, dest):
+        self.initial = catchName.lower()
+        self.dest = dest

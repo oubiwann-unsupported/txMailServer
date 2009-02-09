@@ -2,22 +2,28 @@ import os
 
 from zope.interface import implements
 
-from twisted.mail import pop3, maildir
+from twisted.mail import maildir
+from twisted.mail.pop3 import IMailbox
+from twisted.mail.imap4 import IAccount
 from twisted.cred import portal, checkers, credentials, error as credError
 from twisted.internet import protocol, reactor, defer
+from twisted.python import log
 
-from txmailserver.pop3 import UserInbox
+from txmailserver import pop3, imap4
+
 
 class MailUserRealm(object):
     implements(portal.IRealm)
     avatarInterfaces = {
-        pop3.IMailbox: UserInbox,
+        IMailbox: pop3.UserInbox,
+        IAccount: imap4.Account
         }
 
     def __init__(self, baseDir):
         self.baseDir = baseDir
 
     def requestAvatar(self, avatarId, mind, *interfaces):
+        log.msg(interfaces)
         for requestedInterface in interfaces:
             if self.avatarInterfaces.has_key(requestedInterface):
                 # make sure the user dir exists

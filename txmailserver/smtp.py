@@ -1,5 +1,6 @@
 import os
 import re
+
 from email.Header import Header
 from subprocess import Popen, PIPE
 from cStringIO import StringIO
@@ -10,14 +11,17 @@ from twisted.mail import smtp, maildir, mail
 from twisted.internet import protocol, defer
 from twisted.internet.threads import deferToThread
 from twisted.application.internet import TimerService
+from twisted.python import log
 
 from txmailserver.util import runDspam, VALID_DSPAM_PREFIX
-from txmailserver.domain import Alias, Actual, Maillist
+from txmailserver.domain import Alias, Actual, Maillist, CatchAll
+
 
 def processMessageData(user, data, dspamEnabled):
     if dspamEnabled:
         data = runDspam(user, data)
     return data
+
 
 class MaildirMessageWriter(object):
     implements(smtp.IMessage)
@@ -36,14 +40,14 @@ class MaildirMessageWriter(object):
 
     def eomReceived(self):
         # message is complete, store it
-        print "Message data complete."
+        log.msg("Message data complete.")
         self.lines.append('') # add a trailing newline
         data = '\n'.join(self.lines)
         messageData = processMessageData(self.user, data, self.dspamEnabled)
         return self.mailbox.appendMessage(messageData)
 
     def connectionLost(self):
-        print "Connection lost unexpectedly!"
+        log.msg("Connection lost unexpectedly!")
         # unexpected loss of connection; don't save
         del(self.lines)
 
@@ -70,7 +74,7 @@ class MaildirListMessageWriter(MaildirMessageWriter):
         for key in self.lines.keys():
             # message is complete, store it
             self.lines[key].append('')
-            print "Message data complete for %s." % key
+            log.msg("Message data complete for %s." % key)
             user = os.path.split(key)[-1]
             data = '\n'.join(self.lines[key])
             messageData = processMessageData(user, data, dspamEnabled)
@@ -101,12 +105,11 @@ class LocalDelivery(object):
             self.whitelistQueue.append(user)
 
     def validateFrom(self, helo, originAddress):
-        print "validateFrom():"
-        print originAddress
+        log.msg("validateFrom(): %s" % originAddress)
         if originAddress in self.whitelist + self.whitelistQueue:
             return originAddress
         elif originAddress in self.blacklist:
-            print "Sender in blacklist! Denying message..."
+            log.msg("Sender in blacklist! Denying message...")
             raise smtp.SMTPBadSender(originAddress)
         return originAddress
     
@@ -142,8 +145,8 @@ class LocalDelivery(object):
             if destUser in [name] + prefixes:
                 if destUser != name:
                     userType.dest = "%s@%s" % (destUser, destDomain)
-                    print "Setting DSPAM username as:"
-                print "Accepting mail for %s..." % user.dest
+                    log.msg("Setting DSPAM username as:")
+                log.msg("Accepting mail for %s..." % user.dest)
                 if isinstance(userType, Alias):
                     finalDest = userType.dest
                 elif isinstance(userType, Actual):
@@ -151,11 +154,12 @@ class LocalDelivery(object):
                 elif isinstance(userType, Maillist):
                     addressDirs = [self._getAddressDir(x)
                                    for x in userType.dest]
-                    print "Looks like destination is a mail list..."
-                    print "list addresses:"
-                    print addressDirs
+                    log.msg("Looks like destination is a mail list...")
+                    log.msg("list addresses: %s" % addressDirs)
                     return lambda: MaildirListMessageWriter(
                         addressDirs, self.dspamEnabled)
+                elif isinstance(userType, CatchAll):
+                    finalDest = user.dest
                 return lambda: MaildirMessageWriter(
                     self._getAddressDir(finalDest), self.dspamEnabled)
         raise smtp.SMTPBadRcpt(user.dest)
@@ -199,8 +203,8 @@ class SMTPFactory(protocol.ServerFactory):
     def purgeWhitelistQueue(self):
         # XXX there's a race condition between this and the local delivery
         # instantiation updating the whitelist attribute
-        print "Entries in whitelist: %s" % len(self.whitelist)
-        print "Entries in whitelist queue: %s" % len(self.whitelistQueue)
+        log.msg("Entries in whitelist: %s" % len(self.whitelist))
+        log.msg("Entries in whitelist queue: %s" % len(self.whitelistQueue))
         wl = self._getWhitelistFromFile()
         uniq = list(set(self.whitelistQueue + wl))
         #fh = open(self.whitelistFile, 'w+')
@@ -208,4 +212,4 @@ class SMTPFactory(protocol.ServerFactory):
         #fh.close()
         self.whitelistQueue = []
         self.whitelist = self._getWhitelistFromFile()
-        print "Entries in whitelist (updated): %s" % len(self.whitelist)
+        log.msg("Entries in whitelist (updated): %s" % len(self.whitelist))

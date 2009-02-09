@@ -4,6 +4,8 @@ from zope.interface import implements
 
 from twisted.mail import pop3, maildir
 from twisted.internet import protocol, defer
+from twisted.python import log
+
 
 class UserInbox(maildir.MaildirMailbox):
     """
@@ -14,18 +16,18 @@ class UserInbox(maildir.MaildirMailbox):
     """
     def __init__(self, userdir):
         inboxDir = os.path.join(userdir, 'Inbox')
-        print "Expecting maildir to be %s" % inboxDir
+        log.msg("Expecting maildir to be %s" % inboxDir)
         maildir.MaildirMailbox.__init__(self, inboxDir)
 
 class POP3Protocol(pop3.POP3):
     debug = True
     
     def sendLine(self, line):
-        if self.debug: print "POP3 SERVER:", line
+        if self.debug: log.msg("POP3 SERVER:", line)
         pop3.POP3.sendLine(self, line)
 
     def lineReceived(self, line):
-        if self.debug: print "POP3 CLIENT:", line
+        if self.debug: log.msg("POP3 CLIENT:", line)
         pop3.POP3.lineReceived(self, line)
 
 class POP3Factory(protocol.Factory):

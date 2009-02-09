@@ -9,6 +9,8 @@ from twisted.mail import mail, relay, relaymanager
 from txmailserver import auth
 from txmailserver.smtp import SMTPFactory
 from txmailserver.pop3 import POP3Factory
+from txmailserver.imap4 import IMAP4Factory
+
 
 class MailService(mail.MailService):
 
@@ -52,6 +54,12 @@ class MailService(mail.MailService):
 
     def getPOP3Factory(self):
         factory = POP3Factory()
+        factory.portal = self.portal
+        factory.portal.registerChecker(self.checker)
+        return factory
+
+    def getIMAP4Factory(self):
+        factory = IMAP4Factory()
         factory.portal = self.portal
         factory.portal.registerChecker(self.checker)
         return factory

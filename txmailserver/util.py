@@ -1,10 +1,14 @@
+import logging
 from subprocess import Popen, PIPE
+from twisted.python import log
+
 
 VALID_DSPAM_PREFIX = ['train-spam-', 'nospam-', 'spam-']
 
+
 def runDspam(user, data):
     cmds = []
-    print "runDspam got user value of " + user
+    log.msg("runDspam got user value of " + user)
     if user.startswith('train-spam-'):
         user = user.strip('train-spam-')
         cmd = "dspam --deliver=spam --source=corpus --class=spam --mode=tum".split()
@@ -29,19 +33,17 @@ def runDspam(user, data):
         cmd.extend(["--user", user])
         msg = "The following message was not recognized as spam:"
     try:
-        print "DSPAM command:"
-        print ' '.join(cmd)
+        log.msg("DSPAM command: %s" % ' '.join(cmd))
         dspam = Popen(cmd, stdout=PIPE, stdin=PIPE)
         output, error = dspam.communicate(input=data)
     except Exception, e:
         # not sure what exceptions are going to be thrown here...
         error = str(e)
     if error:
-        print "There was a DSPAM error: "
-        print error
+        log.error("There was a DSPAM error: %s" % error)
     if output:
-        print msg
-        print output
+        log.msg(msg)
+        log.msg(output)
     else:
-        print "dspam produced no message..."
+        log.msg("dspam produced no message...")
     return output
