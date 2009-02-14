@@ -1,3 +1,8 @@
+2009.02.14
+
+* POP3 and IMAP4 are using the same mailbox class (inside mailbox.py)
+* Mailbox.py supports IMAP4 metadata such as flags and uid.
+
 2009.02.09
 
 * Added minimum support for IMAP4 (experimental)

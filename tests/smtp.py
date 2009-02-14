@@ -10,6 +10,7 @@ SMTP_PORT = 2525
 POP3_PORT = 2110
 IMAP4_PORT = 2143
 
+
 def cleanup(username, password):
     pop = POP3(HOST, POP3_PORT)
     pop.user(username)
@@ -25,7 +26,10 @@ def setup_cleanup():
     cleanup("bob@sample.org", "4n0th4s3kr1t")
     cleanup("post@sample.org", "post")
 
-@with_setup(setup_cleanup)
+def teardown_cleanup():
+    pass
+
+@with_setup(setup_cleanup, teardown_cleanup)
 def test_pop():
     """
     Sending one and reading one message
@@ -47,7 +51,7 @@ def test_pop():
     assert lines[-1] == message, "body is %s" % message
     pop.quit()
 
-@with_setup(setup_cleanup)
+@with_setup(setup_cleanup, teardown_cleanup)
 def test_imap():
     """
     Sending one and reading one message
@@ -60,18 +64,19 @@ def test_imap():
     imap = IMAP4(HOST, IMAP4_PORT)
     imap.login("bob@sample.org", "4n0th4s3kr1t")
     (response, inboxes) = imap.list(".")
-    (_a, dir, name) = inboxes[0].split(" ")
+    
+    (flags, _rest) = inboxes[0][1:].split(") ", 1)
+    (dir, name) = _rest.split(" ")
     name = name[1:-1] # remove the quotes
-    assert name == "INBOX", "can haz Inbox"
+    assert name == "Inbox", "can haz Inbox"
     (response, size) = imap.select()
     (response, emails) = imap.search(None, "ALL")
     (response, emails) = imap.fetch("1", '(UID BODY[TEXT])')
     (metadata, email) = emails[0]
-    assert message in email, "same text"
-    #assert email == message, "should work"
+    assert email == message+"\n", "should work"
     imap.logout()
 
-@with_setup(setup_cleanup)
+@with_setup(setup_cleanup, teardown_cleanup)
 def test_catchall():
     message = "Hello catchall!"
     smtp = SMTP(HOST, SMTP_PORT)

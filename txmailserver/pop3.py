@@ -6,18 +6,13 @@ from twisted.mail import pop3, maildir
 from twisted.internet import protocol, defer
 from twisted.python import log
 
+from txmailserver.mailbox import Mailbox
 
-class UserInbox(maildir.MaildirMailbox):
-    """
-    maildir.MaildirMailbox already implements the pop3.IMailbox
-    interface, so methods will only need to be defined to
-    override the default behavior. For non-maildir mailboxes,
-    you'd have to implement all of pop3.IMailbox. 
-    """
+
+class POP3Account(Mailbox):
     def __init__(self, userdir):
-        inboxDir = os.path.join(userdir, 'Inbox')
-        log.msg("Expecting maildir to be %s" % inboxDir)
-        maildir.MaildirMailbox.__init__(self, inboxDir)
+        Mailbox.__init__(self, os.path.join(userdir, "Inbox"))  
+
 
 class POP3Protocol(pop3.POP3):
     debug = True
@@ -29,6 +24,7 @@ class POP3Protocol(pop3.POP3):
     def lineReceived(self, line):
         if self.debug: log.msg("POP3 CLIENT:", line)
         pop3.POP3.lineReceived(self, line)
+
 
 class POP3Factory(protocol.Factory):
     protocol = POP3Protocol

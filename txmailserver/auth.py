@@ -9,14 +9,14 @@ from twisted.cred import portal, checkers, credentials, error as credError
 from twisted.internet import protocol, reactor, defer
 from twisted.python import log
 
-from txmailserver import pop3, imap4
-
+from txmailserver.pop3 import POP3Account
+from txmailserver.imap4 import IMAP4Account
 
 class MailUserRealm(object):
     implements(portal.IRealm)
     avatarInterfaces = {
-        IMailbox: pop3.UserInbox,
-        IAccount: imap4.Account
+        IMailbox: POP3Account,
+        IAccount: IMAP4Account
         }
 
     def __init__(self, baseDir):
