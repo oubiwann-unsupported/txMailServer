@@ -2,16 +2,19 @@ import os
 
 from zope.interface import implements
 
-from twisted.mail import pop3, maildir
+from twisted.mail import pop3
 from twisted.internet import protocol, defer
 from twisted.python import log
 
 from txmailserver.mailbox import Mailbox
 
 
+__all__ = ["POP3Account", "POP3Protocol", "POP3Factory"]
+
+
 class POP3Account(Mailbox):
     def __init__(self, userdir):
-        Mailbox.__init__(self, os.path.join(userdir, "Inbox"))  
+        Mailbox.__init__(self, os.path.join(userdir, "INBOX"))  
 
 
 class POP3Protocol(pop3.POP3):

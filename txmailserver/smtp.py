@@ -31,7 +31,7 @@ class MaildirMessageWriter(object):
         self.user = os.path.split(userDir)[-1]
         if not os.path.exists(userDir):
             os.mkdir(userDir)
-        inboxDir = os.path.join(userDir, 'Inbox')
+        inboxDir = os.path.join(userDir, 'INBOX')
         self.mailbox = maildir.MaildirMailbox(inboxDir)
         self.lines = []
     
@@ -61,7 +61,7 @@ class MaildirListMessageWriter(MaildirMessageWriter):
         for userDir in userDirList:
             if not os.path.exists(userDir):
                 os.mkdir(userDir)
-            inboxDir = os.path.join(userDir, 'Inbox')
+            inboxDir = os.path.join(userDir, 'INBOX')
             self.mailboxes[userDir] = maildir.MaildirMailbox(inboxDir)
             self.lines[userDir] = []
 

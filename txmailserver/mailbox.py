@@ -7,6 +7,7 @@ import simplejson as json
 from random import randint
 from datetime import datetime
 from StringIO import StringIO
+
 from zope.interface import implements
 
 from twisted.mail import imap4, maildir
@@ -44,12 +45,32 @@ class Mailbox(maildir.MaildirMailbox):
                 "uidnext": 1,
                 "subscribed": False
                 }
-            self.saveMeta()
         else:
             self.meta = json.loads(file(self.meta_filename, "r").read())
+        self.initMeta()
     
     def saveMeta(self):
         json.dump(self.meta, file(self.meta_filename, "w"))
+    
+    def initMeta(self):
+        for mail in self.list:
+            filename = os.path.basename(mail)
+            if filename not in self.meta["uids"]:
+                uid = self.getUIDNext()
+                self.meta["uids"][filename] = uid
+                self.meta["flags"][filename] = []
+        self.saveMeta()
+
+    #POP3
+    def deleteMessage(self, i):
+        """ delete message """
+        filename = os.path.basename(self.list[i])
+        log.msg("deleting %s" % filename)
+        maildir.MaildirMailbox.deleteMessage(self, i)
+        
+        del self.meta["uids"][filename]
+        del self.meta["flags"][filename]
+        self.saveMeta()
 
     # IMailboxInfo
     def getFlags(self):
@@ -67,36 +88,32 @@ class Mailbox(maildir.MaildirMailbox):
 
     def getUIDNext(self):
         """ Return the likely UID for the next message added to this mailbox. """
-        raise "Not implemented"
-        return self.meta["uidnext"]
+        uidnext = self.meta["uidnext"]
+        self.meta["uidnext"] += 1
+        return uidnext
 
     def getUID(self, message):
         """ Return the UID of a message in the mailbox
         message:int message sequence number"""
         filename = os.path.basename(self.list[message - 1])
-        return self.meta["uids"][filename]
+        if filename not in self.meta["uids"]:
+            uid = self.getUIDNext()
+            self.meta["uids"][filename] = uid
+            self.saveMeta()
+            return uid
+        else:
+            return self.meta["uids"][filename]
     
     def getFlagCount(self, flag):
         """ Return the number of message with the given flag """
         count = 0
         for message in self.list:
             filename = os.path.basename(message)
-            if filename in self.meta["uids"]:
-                uid = self.meta["uids"][filename]
-                flags = self.meta["flags"][uid]
-            else:
-                uid = self.meta["uidnext"]
-                flags = []
-                
-                self.meta["uids"][filename] = uid
-                self.meta["flags"][filename] = flags
-                self.meta["uidnext"] += 1
-
+            flags = self.meta["flags"][filename]
             if flag in flags:
                 count+=1
 
-            self.saveMeta()
-
+        self.saveMeta()
         return count
 
     def getMessageCount(self):
@@ -157,17 +174,16 @@ class Mailbox(maildir.MaildirMailbox):
         flags:iter or str
         date:str
         """
-        return self.appendMessage(msg).addCallback(self.addedMessage, flags)
+        return self.appendMessage(msg).addCallback(self.cbAddedMessage, flags)
     
-    def addedMessage(self, _, flags):
-        log.msg(_)
-        log.flags(_)
+    def cbAddedMessage(self, _something, flags):
+        """ Callback """
         message = os.path.basename(self.list[-1])
-        uid = self.meta["uidnext"]
+        uid = self.getUIDNext()
         self.meta["uids"][message] = uid
         self.meta["flags"][uid] = flags
-        self.meta["uidnext"]+1
-
+        self.saveMeta()
+    
     def expunge(self):
         """ Remove all messages flagged \Deleted.  """
         for filename in self.list:
@@ -196,7 +212,8 @@ class Mailbox(maildir.MaildirMailbox):
                     msgs.append((uid, filename))
         else:
             if not messages.last:
-                messages.last = len(self.list) - 1
+                messages.last = max(0, len(self.list) - 1)
+            
             for message in messages:
                 uid = self.getUID(message)
                 filename = self.list[message - 1]
@@ -221,6 +238,7 @@ class Mailbox(maildir.MaildirMailbox):
             # replace
             if mode == 0:
                 self.meta["flags"][uid] = flags
+                self.saveMeta()
                 yield uid, flags
             else:
                 old_flags = self.meta["flags"][uid]
@@ -230,6 +248,7 @@ class Mailbox(maildir.MaildirMailbox):
                 else:
                     new_flags = list(set(old_flags) + set(flags))
                 self.meta["flags"][uid] = new_flags
+                self.saveMeta()
                 yield uid, new_flags
 
 

@@ -9,7 +9,7 @@ from twisted.python import log
 from txmailserver.mailbox import Mailbox, Message, MessagePart
 
 
-__all__ = ["Account", "Message", "MessagePart", "IMAP4Protocol", "IMAP4Factory"]
+__all__ = ["IMAP4Account", "IMAP4Protocol", "IMAP4Factory"]
 
 
 class IMAP4Account:
@@ -18,7 +18,7 @@ class IMAP4Account:
     def __init__(self, userdir):
         self.userdir = userdir
         self.mailboxes = {
-            "INBOX": Mailbox(os.path.join(userdir, "Inbox"))
+            "INBOX": Mailbox(os.path.join(userdir, "INBOX"))
             }
     
     def addMailbox(self, name, mbox=None):

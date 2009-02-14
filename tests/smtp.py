@@ -68,7 +68,7 @@ def test_imap():
     (flags, _rest) = inboxes[0][1:].split(") ", 1)
     (dir, name) = _rest.split(" ")
     name = name[1:-1] # remove the quotes
-    assert name == "Inbox", "can haz Inbox"
+    assert name == "INBOX", "can haz inbox"
     (response, size) = imap.select()
     (response, emails) = imap.search(None, "ALL")
     (response, emails) = imap.fetch("1", '(UID BODY[TEXT])')
