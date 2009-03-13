@@ -14,7 +14,7 @@ from twisted.application.internet import TimerService
 from twisted.python import log
 
 from txmailserver.util import runDspam, VALID_DSPAM_PREFIX
-from txmailserver.domain import Alias, Actual, Maillist, CatchAll
+from txmailserver.domain import Alias, Actual, Maillist, CatchAll, Script
 
 
 def processMessageData(user, data, dspamEnabled):
@@ -22,6 +22,36 @@ def processMessageData(user, data, dspamEnabled):
         data = runDspam(user, data)
     return data
 
+def scriptTask(user, data, callback):
+    d = defer.Deferred()
+    
+    callback(user, data)
+
+    d.callback(None)
+    
+    return d
+
+class ScriptMessageWriter(object):
+    implements(smtp.IMessage)
+
+    def __init__(self, user, func):
+        self.user = user
+        self.func = func
+        self.lines = []
+
+    def lineReceived(self, line):
+        self.lines.append(line)
+
+    def eomReceived(self):
+        log.msg("Message data complete.")
+        self.lines.append('') # add a trailing newline
+        data = '\n'.join(self.lines)
+        return scriptTask(self.user, data, self.func)
+    
+    def connectionLost(self):
+        log.msg("Connection lost unexpectedly!")
+        # unexpected loss of connection; don't save
+        del(self.lines)
 
 class MaildirMessageWriter(object):
     implements(smtp.IMessage)
@@ -166,8 +196,12 @@ class LocalDelivery(object):
                 else:
                     log.err(userType)
                 
-                return lambda: MaildirMessageWriter(
-                    self._getAddressDir(finalDest), self.dspamEnabled)
+                if not isinstance(userType, Script):
+                    return lambda: MaildirMessageWriter(
+                        self._getAddressDir(finalDest), self.dspamEnabled)
+                else:
+                    return lambda: ScriptMessageWriter(
+                        user.dest, userType.func)
         raise smtp.SMTPBadRcpt(user.dest)
 
     def _getAddressDir(self, address):

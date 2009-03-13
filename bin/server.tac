@@ -1,8 +1,12 @@
 from twisted.application import internet, service
+from twisted.python import log
 
 from txmailserver import mailservice
-from txmailserver.domain import Alias, Actual, Maillist, CatchAll
+from txmailserver.domain import Alias, Actual, Maillist, CatchAll, Script
 
+# sample script
+def got_message(dest, message):
+    log.msg("got something for %s\n\n%s" % (dest, message))
 
 domains = {
     'sample.org': [
@@ -23,6 +27,9 @@ domains = {
         Actual('post'),
         CatchAll('^post-[0-9]+$', 'post@sample.org'),
         CatchAll('^post\+.*$', 'post@sample.org'),
+
+        # script
+        Script('bot', got_message),
 
         # lists
         Maillist('test-list', [

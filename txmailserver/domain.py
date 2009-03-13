@@ -1,5 +1,7 @@
 import re
 
+__all__ = ["AddressType", "Actual", "Alias", "Maillist", "CatchAll", "Script"]
+
 class AddressType(object):
     def __init__(self, initial):
         self.initial = initial.lower()
@@ -42,3 +44,9 @@ class CatchAll(AddressType):
     
     def validate(self, destName, prefixes=None):
         return self.validator.match(destName)
+
+class Script(Actual):
+
+    def __init__(self, userName, func):
+        super(Script, self).__init__(userName)
+        self.func = func

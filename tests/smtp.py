@@ -98,6 +98,12 @@ def test_catchall():
         assert lines[-1] == message, "body is %s" % message
     pop.quit()
 
+@with_setup(setup_cleanup, teardown_cleanup)
+def test_script():
+    message = "Hello world! Message posted via txmailserver!"
+    smtp = SMTP(HOST, SMTP_PORT)
+    smtp.sendmail("bob@sample.org", "bot@sample.org", message)
+    smtp.quit()
 
 if __name__ == "__main__":
-    nose.main()
+    nose.run(argv=['',__file__])
