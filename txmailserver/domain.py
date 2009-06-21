@@ -45,8 +45,14 @@ class CatchAll(AddressType):
     def validate(self, destName, prefixes=None):
         return self.validator.match(destName)
 
-class Script(Actual):
+class Script(CatchAll):
 
-    def __init__(self, userName, func):
-        super(Script, self).__init__(userName)
+    def __init__(self, catchName, dest, func=None):
+        if func is None:
+            func = dest
+            dest = catchName
+            # TODO: regex escape it (.,
+            catchName = "^%s$" % catchName
+        
+        super(Script, self).__init__(catchName, dest)
         self.func = func

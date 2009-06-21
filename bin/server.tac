@@ -6,7 +6,7 @@ from txmailserver.domain import Alias, Actual, Maillist, CatchAll, Script
 
 # sample script
 def got_message(dest, message):
-    log.msg("got something for %s\n\n%s" % (dest, message))
+    log.msg("got something for %s:\n\n%s" % (dest, message.get_payload()))
 
 domains = {
     'sample.org': [
@@ -30,6 +30,7 @@ domains = {
 
         # script
         Script('bot', got_message),
+        Script('^bot-[0-9]+$', 'bot', got_message),
 
         # lists
         Maillist('test-list', [

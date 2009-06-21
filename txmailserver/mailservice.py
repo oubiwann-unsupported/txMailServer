@@ -52,6 +52,15 @@ class MailService(mail.MailService):
         self.smtpPortal = factory.portal
         return factory
 
+    def getESMTPFactory(self):
+        factory = SMTPFactory(
+            self.baseDir, self.configDir, self.validDomains, self.queuer)
+        factory.configDir = self.configDir
+        factory.portal = self.portal
+        factory.portal.registerChecker(self.checker)
+        self.smtpPortal = factory.portal
+        return factory
+
     def getPOP3Factory(self):
         factory = POP3Factory()
         factory.portal = self.portal

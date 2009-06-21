@@ -102,8 +102,10 @@ def test_catchall():
 def test_script():
     message = "Hello world! Message posted via txmailserver!"
     smtp = SMTP(HOST, SMTP_PORT)
-    smtp.sendmail("bob@sample.org", "bot@sample.org", message)
+    smtp.sendmail("bob@sample.org", "bot-1000@sample.org", message)
+    # check the server's output.
     smtp.quit()
+
 
 if __name__ == "__main__":
     nose.run(argv=['',__file__])

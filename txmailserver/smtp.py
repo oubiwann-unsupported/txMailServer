@@ -1,6 +1,7 @@
 import os
 import re
 
+from email.parser import FeedParser
 from email.Header import Header
 from subprocess import Popen, PIPE
 from cStringIO import StringIO
@@ -25,11 +26,16 @@ def processMessageData(user, data, dspamEnabled):
 def scriptTask(user, data, callback):
     d = defer.Deferred()
     
-    callback(user, data)
+    parser = FeedParser()
+    parser.feed(data)
+    message = parser.close()
+
+    callback(user, message)
 
     d.callback(None)
     
     return d
+
 
 class ScriptMessageWriter(object):
     implements(smtp.IMessage)
@@ -52,6 +58,7 @@ class ScriptMessageWriter(object):
         log.msg("Connection lost unexpectedly!")
         # unexpected loss of connection; don't save
         del(self.lines)
+
 
 class MaildirMessageWriter(object):
     implements(smtp.IMessage)
@@ -80,6 +87,7 @@ class MaildirMessageWriter(object):
         log.msg("Connection lost unexpectedly!")
         # unexpected loss of connection; don't save
         del(self.lines)
+
 
 class MaildirListMessageWriter(MaildirMessageWriter):
 
@@ -110,6 +118,7 @@ class MaildirListMessageWriter(MaildirMessageWriter):
             messageData = processMessageData(user, data, dspamEnabled)
             dl.append(self.mailboxes[key].appendMessage(messageData))
         return defer.DeferredList(dl)
+
 
 class LocalDelivery(object):
     implements(smtp.IMessageDelivery)
@@ -253,3 +262,11 @@ class SMTPFactory(protocol.ServerFactory):
         self.whitelistQueue = []
         self.whitelist = self._getWhitelistFromFile()
         log.msg("Entries in whitelist (updated): %s" % len(self.whitelist))
+
+class ESMTPFactory(SMTPFactory):
+    def buildProcotol(self, addr):
+        delivery = self.getDelivery()
+        esmtpProtocol = smtp.ESMTP(delivery)
+        esmtpProcotol.factory = self
+        return esmtpProcotol
+
