@@ -35,24 +35,25 @@ class Maillist(AddressType):
         super(Maillist, self).__init__(mailListName)
         self.dest = recipients
 
-class CatchAll(AddressType):
-    
-    def __init__(self, catchName, dest):
-        super(CatchAll, self).__init__(catchName)
+class _Regex(AddressType):
+
+    def __init__(self, catchName):
+        super(_Regex, self).__init__(catchName)
         self.validator = re.compile(catchName, re.I)
-        self.dest = dest.lower()
-    
+
     def validate(self, destName, prefixes=None):
         return self.validator.match(destName)
 
-class Script(CatchAll):
 
-    def __init__(self, catchName, dest, func=None):
-        if func is None:
-            func = dest
-            dest = catchName
-            # TODO: regex escape it (.,
-            catchName = "^%s$" % catchName
-        
-        super(Script, self).__init__(catchName, dest)
+class CatchAll(_Regex):
+    
+    def __init__(self, catchName, dest):
+        super(CatchAll, self).__init__(catchName)
+        self.dest = dest.lower()
+    
+
+class Script(_Regex):
+
+    def __init__(self, catchName, func):        
+        super(Script, self).__init__(catchName)
         self.func = func

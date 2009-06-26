@@ -6,21 +6,25 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 
 # TWITTER
-USERNAME = "greut"
-PASSWORD = "##########"
+USERNAME = None
+PASSWORD = None
 
 def main(argv):
     if len(argv) <> 3:
-        print 'Usage %s "Message" image.jpg'
+        print 'Usage %s image.jpg Message'
+        return 0
+
+    if USERNAME is None or PASSWORD is None:
+        print 'Please edit username and password'
         return 0
 
     to = "%s+%s@twitpicit.org" % (USERNAME, PASSWORD)
 
     message = MIMEMultipart()
-    message["Subject"] = argv[1]
+    message["Subject"] = "".join(argv[2:])
     message["To"] = to
     
-    fp = open(argv[2], "rb")
+    fp = open(argv[1], "rb")
     message.attach(MIMEImage(fp.read()))
     fp.close()
 
