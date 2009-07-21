@@ -71,17 +71,19 @@ class CredentialsChecker(object):
 
 def passwordFileToDict(filename):
     passwords = {}
-    for line in file(filename):
-        if line and line.count(':'):
-            username, password = line.strip().split(':')
-            passwords[username.strip()] = password.strip()
+    if os.path.exists(filename):
+        for line in file(filename):
+            if line and line.count(':'):
+                username, password = line.strip().split(':')
+                passwords[username.strip()] = password.strip()
+    else:
+        log.err("%s - passwords not found" % filename)
     return passwords
 
 def getPasswords(configDir):
     return os.path.join(configDir, 'passwords.txt')
 
 def getChecker(configDir):
-    passwordFile = getPasswords(configDir)
     passwords = passwordFileToDict(passwordFile)
     checker = CredentialsChecker(passwords)
     return checker

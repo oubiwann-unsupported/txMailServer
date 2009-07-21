@@ -30,7 +30,7 @@ domains = {
 
         # script
         Script('bot', got_message),
-        Script('^bot-[0-9]+$', 'bot', got_message),
+        Script('^bot-[0-9]+$', got_message),
 
         # lists
         Maillist('test-list', [

@@ -221,8 +221,9 @@ class SMTPFactory(protocol.ServerFactory):
     def __init__(self, baseDir, configDir, validDomains, domainQueuer):
         self.baseDir = baseDir
         self.whitelistFile = os.path.join(configDir, 'whitelist.txt')
-        self.blacklist = open(os.path.join(configDir, 'blacklist.txt')).readlines()
+        self.blacklistFile = os.path.join(configDir, 'blacklist.txt')
         self.whitelist = self._getWhitelistFromFile()
+        self.blacklist = self._getBlacklistFromFile()
         self.whitelistQueue = []
         self.validDomains = validDomains
         self.domainQueuer = domainQueuer
@@ -246,8 +247,19 @@ class SMTPFactory(protocol.ServerFactory):
         return smtpProtocol
 
     def _getWhitelistFromFile(self):
-        wl = open(self.whitelistFile).readlines()
-        return list(set(wl))
+        if os.path.exists(self.whitelistFile):
+            wl = open(self.whitelistFile).readlines()
+            return list(set(wl))
+        else:
+            log.err("%s - whitelist not found" % self.whitelistFile)
+            return []
+
+    def _getBlacklistFromFile(self):
+        if os.path.exists(self.blacklistFile):
+            return open(self.blacklistFile).readlines()
+        else:
+            log.err("%s - blacklist not found" % self.blacklistFile)
+            return []
 
     def purgeWhitelistQueue(self):
         # XXX there's a race condition between this and the local delivery
