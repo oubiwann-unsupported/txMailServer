@@ -1,6 +1,7 @@
 #!/bin/sh
 
-BASE_DIR=/var/twisted.mail
+#BASE_DIR=/var/twisted.mail
+BASE_DIR=`pwd`
 TWISTD=/usr/bin/twistd
 APP=bin/server.tac
 

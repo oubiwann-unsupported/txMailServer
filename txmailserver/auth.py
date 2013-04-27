@@ -2,22 +2,28 @@ import os
 
 from zope.interface import implements
 
-from twisted.mail import pop3, maildir
+from twisted.mail import maildir
+from twisted.mail.pop3 import IMailbox
+from twisted.mail.imap4 import IAccount
 from twisted.cred import portal, checkers, credentials, error as credError
 from twisted.internet import protocol, reactor, defer
+from twisted.python import log
 
-from txmailserver.pop3 import UserInbox
+from txmailserver.pop3 import POP3Account
+from txmailserver.imap4 import IMAP4Account
 
 class MailUserRealm(object):
     implements(portal.IRealm)
     avatarInterfaces = {
-        pop3.IMailbox: UserInbox,
+        IMailbox: POP3Account,
+        IAccount: IMAP4Account
         }
 
     def __init__(self, baseDir):
         self.baseDir = baseDir
 
     def requestAvatar(self, avatarId, mind, *interfaces):
+        log.msg(interfaces)
         for requestedInterface in interfaces:
             if self.avatarInterfaces.has_key(requestedInterface):
                 # make sure the user dir exists
@@ -65,17 +71,19 @@ class CredentialsChecker(object):
 
 def passwordFileToDict(filename):
     passwords = {}
-    for line in file(filename):
-        if line and line.count(':'):
-            username, password = line.strip().split(':')
-            passwords[username.strip()] = password.strip()
+    if os.path.exists(filename):
+        for line in file(filename):
+            if line and line.count(':'):
+                username, password = line.strip().split(':')
+                passwords[username.strip()] = password.strip()
+    else:
+        log.err("%s - passwords not found" % filename)
     return passwords
 
 def getPasswords(configDir):
     return os.path.join(configDir, 'passwords.txt')
 
 def getChecker(configDir):
-    passwordFile = getPasswords(configDir)
     passwords = passwordFileToDict(passwordFile)
     checker = CredentialsChecker(passwords)
     return checker

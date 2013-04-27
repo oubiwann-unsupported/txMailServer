@@ -1,7 +1,12 @@
 from twisted.application import internet, service
+from twisted.python import log
 
 from txmailserver import mailservice
-from txmailserver.domain import Alias, Actual, Maillist
+from txmailserver.domain import Alias, Actual, Maillist, CatchAll, Script
+
+# sample script
+def got_message(dest, message):
+    log.msg("got something for %s:\n\n%s" % (dest, message.get_payload()))
 
 domains = {
     'sample.org': [
@@ -17,6 +22,15 @@ domains = {
         # admin
         Alias('abuse', 'bob@sample.org'),
         Alias('postmaster', 'alice@sample.org'),
+        
+        # catch all
+        Actual('post'),
+        CatchAll('^post-[0-9]+$', 'post@sample.org'),
+        CatchAll('^post\+.*$', 'post@sample.org'),
+
+        # script
+        Script('bot', got_message),
+        Script('^bot-[0-9]+$', got_message),
 
         # lists
         Maillist('test-list', [
@@ -44,9 +58,10 @@ configDir = 'etc'
 forwardDir = 'queue'
 smtpPort = 2525
 pop3Port = 2110
+imap4Port = 2143
 
 # setup the application
-application = service.Application("smtp and pop server")
+application = service.Application("smtp, pop and imap server")
 svc = service.IServiceCollection(application)
 
 # setup the mail service
@@ -70,3 +85,10 @@ whitelistQueueTimer.setServiceParent(svc)
 pop3Factory = ms.getPOP3Factory()
 pop3 = internet.TCPServer(pop3Port, pop3Factory)
 pop3.setServiceParent(svc)
+
+# setup the IMAP server
+imap4Factory = ms.getIMAP4Factory()
+imap4 = internet.TCPServer(imap4Port, imap4Factory)
+imap4.setServiceParent(svc)
+
+# vim:ft=python:

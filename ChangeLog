@@ -1,3 +1,15 @@
+2009.02.14
+
+* POP3 and IMAP4 are using the same mailbox class (inside mailbox.py)
+* Mailbox.py supports IMAP4 metadata such as flags and uid.
+
+2009.02.09
+
+* Added minimum support for IMAP4 (experimental)
+* Added CatchAll to get regexp based email aliases
+* Added a set of basic test cases
+* Removed DSpam support (kept it inside the TODO)
+
 2009.01.06
 
 * Updated TODO.
